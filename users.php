@@ -12,7 +12,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 include 'db_connect.php';
 
-$sql = 'SELECT id, Username , Major , Year_of_study , Phone , Email , Profile_photo FROM users ORDER BY id DESC';
+$now = date('Y-m-d H:i:s');
+
+$autoUnban = $pdo->prepare("UPDATE users 
+    SET Ban_until = NULL
+    WHERE Ban_until IS NOT NULL AND Ban_until <= ?
+");
+$autoUnban->execute([$now]);
+
+
+$sql = 'SELECT id, Username , Major , Year_of_study , Phone , Email , Profile_photo , Ban_until FROM users ORDER BY id DESC';
 $stmt = $pdo->query($sql);
 $users = $stmt->fetchAll();
 

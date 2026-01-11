@@ -73,13 +73,13 @@ if (!$user) {
     exit;
 }
 
-if ((int)$user['Can_login'] === 0) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Account disabled"
-    ]);
-    exit;
-}
+// if ((int)$user['Can_login'] === 0) {
+//     echo json_encode([
+//         "success" => false,
+//         "message" => "Account disabled"
+//     ]);
+//     exit;
+// }
 
 // NOTE: this is plain-text compare. In production use password_hash / password_verify.
 if ($password !== $user['Password']) {
