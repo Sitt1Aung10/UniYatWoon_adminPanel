@@ -139,7 +139,6 @@ $limit = 6;
 /* Cursor Pagination */
 $last_created_at = $_GET['last_created_at'] ?? null;
 $last_id         = $_GET['last_id'] ?? null;
-$last_score = $_GET['last_score'] ?? null;
 
 /* =========================
    1️⃣ Fetch feed posts
@@ -186,18 +185,12 @@ LEFT JOIN users u
 WHERE p.type = :type
 
 AND (
-    :last_score IS NULL
+    :last_created_at IS NULL
     OR (
-        score < :last_score
+        p.Created_at < :last_created_at
         OR (
-            score = :last_score
-            AND (
-                p.Created_at < :last_created_at
-                OR (
-                    p.Created_at = :last_created_at
-                    AND p.id < :last_id
-                )
-            )
+            p.Created_at = :last_created_at
+            AND p.id < :last_id
         )
     )
 )
