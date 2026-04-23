@@ -8,6 +8,7 @@ use Firebase\JWT\Key;
 
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/config.php'; // contains $jwtSecret
+require 'db.php';
 
 header("Content-Type: application/json; charset=UTF-8");
 
@@ -91,6 +92,34 @@ try {
     ]);
     exit;
 }
+
+
+function getUserId() {
+    $headers = getallheaders();
+
+    if (!isset($headers['Authorization'])) {
+        http_response_code(401);
+        echo json_encode(["success" => false, "message" => "No token"]);
+        exit;
+    }
+
+    $token = str_replace("Bearer ", "", $headers['Authorization']);
+
+    // ⚠️ SIMPLE VERSION (you can upgrade to JWT later)
+    $stmt = $GLOBALS['conn']->prepare("SELECT id FROM users WHERE user_uuid = ?");
+    $stmt->bind_param("s", $token);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        echo json_encode(["success" => false]);
+        exit;
+    }
+
+    $user = $result->fetch_assoc();
+    return $user['id'];
+}
+
 
 // ------------------------------
 // 4. Now $user_uuid and $is_admin are ready for downstream code
