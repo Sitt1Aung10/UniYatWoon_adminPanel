@@ -88,13 +88,17 @@ $stmt->execute([$user['Username'], $user_uuid, $description, $type]);
 $post_id = $pdo->lastInsertId();
 
 // ========== HANDLE MEDIA UPLOAD ==========
+// Ensure we have an array to loop through safely
 if (!empty($_FILES['media']['tmp_name']) && is_array($_FILES['media']['tmp_name'])) {
     if (!is_dir('uploads')) mkdir('uploads', 0755, true);
 
     foreach ($_FILES['media']['tmp_name'] as $i => $tmp) {
-        if (!is_uploaded_file($tmp)) continue;
+        if (empty($tmp) || !is_uploaded_file($tmp)) continue;
 
-        $originalName = basename($_FILES['media']['name'][$i]);
+        // FIX: Ensure filename is a string, default to empty string if null
+        $originalName = basename($_FILES['media']['name'][$i] ?? '');
+        
+        // FIX: Ensure extension check doesn't receive null
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         $media_type = in_array($ext, ['mp4','mov','avi','mkv','webm']) ? 'video' : 'image';
 
@@ -112,10 +116,7 @@ if (!empty($_FILES['media']['tmp_name']) && is_array($_FILES['media']['tmp_name'
         } else {
             $file_size = $_FILES['media']['size'][$i] ?? filesize($tmp);
             if ($file_size > $MAX_VIDEO_SIZE) {
-                echo json_encode([
-                    "success" => false,
-                    "Alert" => "Video must be less than 50MB"
-                ]);
+                echo json_encode(["success" => false, "Alert" => "Video must be less than 50MB"]);
                 exit;
             }
 
@@ -123,7 +124,6 @@ if (!empty($_FILES['media']['tmp_name']) && is_array($_FILES['media']['tmp_name'
             $media_path = 'uploads/' . $media_name;
             if (!move_uploaded_file($tmp, $media_path)) continue;
 
-            // Check duration via ffprobe
             $duration = null;
             if (isset($_POST['media_duration'])) {
                 if (is_array($_POST['media_duration'])) {
@@ -134,25 +134,25 @@ if (!empty($_FILES['media']['tmp_name']) && is_array($_FILES['media']['tmp_name'
             }
 
             if (empty($duration)) {
-                $ffprobe = trim(@shell_exec('which ffprobe 2>/dev/null'));
-                if ($ffprobe) {
+                // FIX: Ensure shell_exec output is treated as a string before trim
+                $ffprobe = @shell_exec('which ffprobe 2>/dev/null');
+                $ffprobe = trim($ffprobe ?? ''); 
+
+                if ($ffprobe !== '') {
                     $cmd = escapeshellcmd($ffprobe) .
                         ' -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ' .
                         escapeshellarg($media_path) . ' 2>&1';
+                    
                     $output = @shell_exec($cmd);
-                    if ($output !== null) {
-                        $val = trim($output);
-                        if (is_numeric($val)) $duration = floatval($val);
-                    }
+                    // FIX: Check for null before trimming output
+                    $val = trim($output ?? '');
+                    if (is_numeric($val)) $duration = floatval($val);
                 }
             }
 
             if ($duration !== null && $duration > $MAX_VIDEO_DURATION) {
                 @unlink($media_path);
-                echo json_encode([
-                    "success" => false,
-                    "Alert" => "Video must be 60 seconds or shorter"
-                ]);
+                echo json_encode(["success" => false, "Alert" => "Video must be 60 seconds or shorter"]);
                 exit;
             }
 
