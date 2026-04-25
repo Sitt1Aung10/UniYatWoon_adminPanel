@@ -1,4 +1,8 @@
 <?php
+// 1. Error Reporting (Disable display_errors for production to avoid JSON Parse errors)
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
 require_once "cors.php";
 require_once 'db_connect.php';
 require_once 'config.php';
