@@ -1,6 +1,9 @@
 <?php
-header("Content-Type: application/json");
-require_once "db_connect.php"; // your DB connection
+require_once "cors.php";
+require_once 'db_connect.php';
+require_once 'config.php';
+require_once 'auth.php'; // handles JWT and sets $user_uuid
+header('Content-Type: application/json');
 
 $response = [
     "success" => false,
@@ -22,8 +25,7 @@ try {
     }
 
     // 🔹 Lightweight query (ONLY COUNT)
-    $sql = "
-        SELECT COUNT(*) as new_count
+    $sql = "SELECT COUNT(*) as new_count
         FROM posts
         WHERE Created_at > ?
         AND type = ?
