@@ -55,9 +55,17 @@ if ($post['user_uuid'] !== $user_uuid && !$is_admin) {
 $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ?");
 $stmt->execute([$post_id]);
 
-/* DELETE REPORTS */
-$stmt = $pdo->prepare("DELETE FROM report_posts WHERE Reported_post_id = ?");
-$stmt->execute([$Reported_post_id]);
+$stmt = $pdo->prepare("DELETE FROM posts_media WHERE post_Id = ?");
+$stmt->execute([$post_id]);
+
+$stmt = $pdo->prepare("DELETE FROM comments WHERE post_id = ?");
+$stmt->execute([$post_id]);
+
+$stmt = $pdo->prepare("DELETE FROM likes WHERE post_id = ?");
+$stmt->execute([$post_id]);
+
+$stmt = $pdo->prepare("DELETE FROM savedposts WHERE post_id = ?");
+$stmt->execute([$post_id]);
 
 echo json_encode([
     "success" => true,
