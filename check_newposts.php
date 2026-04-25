@@ -1,56 +1,73 @@
 <?php
-// 1. Error Reporting (Disable display_errors for production to avoid JSON Parse errors)
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
-require_once "cors.php";
-require_once 'db_connect.php';
-require_once 'config.php';
-require_once 'auth.php'; // handles JWT and sets $user_uuid
-header('Content-Type: application/json');
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php_error.log');
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-$response = [
-    "success" => false,
-    "has_new" => false,
-    "count" => 0
-];
+header("Content-Type: application/json");
 
-try {
-    // 🔹 Get params
-    $since = $_GET['since'] ?? null;
-    $type  = $_GET['type'] ?? 'normal';
+require_once "db_connect.php";
 
-    if (!$since) {
-        echo json_encode([
-            "success" => false,
-            "error" => "Missing 'since' parameter"
-        ]);
-        exit;
-    }
-
-    // 🔹 Lightweight query (ONLY COUNT)
-    $sql = "SELECT COUNT(*) as new_count
-        FROM posts
-        WHERE Created_at > ?
-        AND type = ?
-    ";
-
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $since, $type);
-    $stmt->execute();
-
-    $result = $stmt->get_result()->fetch_assoc();
-    $count = (int)$result['new_count'];
-
-    $response["success"] = true;
-    $response["has_new"] = $count > 0;
-    $response["count"] = $count;
-
-    echo json_encode($response);
-
-} catch (Exception $e) {
+if (!isset($pdo)) {
     echo json_encode([
         "success" => false,
-        "error" => $e->getMessage()
+        "error" => "DB connection not initialized"
     ]);
+    exit;
 }
+
+$data = json_decode(file_get_contents("php://input"), true);
+
+// Add this debugging block
+if ($data === null) {
+    echo json_encode([
+        "success" => false,
+        "error" => "JSON Decode Failed or Empty Body",
+        "json_error" => json_last_error_msg(),
+        "raw_input" => file_get_contents("php://input"),
+        "method" => $_SERVER['REQUEST_METHOD']
+    ]);
+    exit;
+}
+
+$since = $data['since'] ?? null;
+$type  = $data['type'] ?? 'normal';
+
+if (!$since) {
+    echo json_encode([
+        "success" => false,
+        "error" => "Missing since parameter"
+    ]);
+    exit;
+}
+
+$sql = "SELECT COUNT(*) as new_count 
+        FROM posts 
+        WHERE Created_at > ? AND type = ?";
+
+$stmt = $pdo->prepare($sql);
+
+if (!$stmt) {
+    echo json_encode([
+        "success" => false,
+        "error" => "Prepare failed"
+    ]);
+    exit;
+}
+
+$stmt->execute([$since, $type]);
+
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$count = (int)$row['new_count'];
+
+echo json_encode([
+    "success" => true,
+    "has_new" => $count > 0,
+    "count" => $count,
+    "since" => $since,
+    "type" => $type
+]);
+
