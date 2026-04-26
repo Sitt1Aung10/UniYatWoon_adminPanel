@@ -1,89 +1,59 @@
 <?php
 require_once "cors.php";
 require_once "db_connect.php";
-require_once "auth.php"; // gives $user_uuid
+require_once "auth.php";
+
+header('Content-Type: application/json');
 
 $raw = file_get_contents("php://input");
-$input = json_decode($raw, true);
+$data = json_decode($raw, true);
 
-if ($input === null) {
+$post_id = $data['post_id'] ?? null;
+$comment = trim($data['comment_text'] ?? "");
+
+if (!$post_id || $comment === "") {
     echo json_encode([
         "success" => false,
-        "message" => "Invalid JSON"
+        "message" => "Invalid input"
     ]);
     exit;
 }
 
-$post_id = $input['post_id'] ?? null;
-$page    = max(1, (int)($input['page'] ?? 1));
-$limit   = 10;
-$offset  = ($page - 1) * $limit;
+try {
+    $pdo->beginTransaction();
 
-if (!$post_id) {
+    // 1️⃣ Insert comment
+    $stmt = $pdo->prepare("INSERT INTO comments (post_id, user_uuid, comment_text, Created_at)
+        VALUES (:post_id, :user_uuid, :comment, NOW())
+    ");
+
+    $stmt->execute([
+        ':post_id' => $post_id,
+        ':user_uuid' => $user_uuid,
+        ':comment' => $comment
+    ]);
+
+    // 2️⃣ Update post count (THIS IS THE FIX YOU WERE MISSING)
+    $update = $pdo->prepare("UPDATE posts
+        SET comment_count = comment_count + 1
+        WHERE id = :post_id
+    ");
+
+    $update->execute([
+        ':post_id' => $post_id
+    ]);
+
+    $pdo->commit();
+
+    echo json_encode([
+        "success" => true
+    ]);
+
+} catch (Exception $e) {
+    $pdo->rollBack();
+
     echo json_encode([
         "success" => false,
-        "message" => "Post ID required"
+        "error" => $e->getMessage()
     ]);
-    exit;
 }
-
-/* CHECK POST EXISTS */
-$stmt = $pdo->prepare("SELECT id FROM posts WHERE id = ? LIMIT 1");
-$stmt->execute([$post_id]);
-
-if (!$stmt->fetch()) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Post not found"
-    ]);
-    exit;
-}
-
-/* FETCH COMMENTS */
-$stmt = $pdo->prepare("SELECT 
-        c.id, 
-        c.user_uuid, 
-        c.Username, 
-        c.Description, 
-        c.Parent_id, 
-        c.Created_at, 
-        u.Profile_photo
-    FROM comments c
-    LEFT JOIN users u ON u.user_uuid = c.user_uuid
-    WHERE c.post_id = ?
-    ORDER BY c.Created_at ASC -- Changed to ASC so conversations flow downward
-    LIMIT ? OFFSET ?
-");
-
-$stmt->bindValue(1, $post_id, PDO::PARAM_INT);
-$stmt->bindValue(2, $limit, PDO::PARAM_INT);
-$stmt->bindValue(3, $offset, PDO::PARAM_INT);
-$stmt->execute();
-
-$comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-/* TOTAL COUNT */
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM comments WHERE post_id = ?");
-$stmt->execute([$post_id]);
-$total = (int)$stmt->fetchColumn();
-
-$update = $pdo->prepare("UPDATE posts 
-    SET comment_count = comment_count + 1 
-    WHERE id = :post_id
-");
-
-$update->execute([
-    ':post_id' => $post_id
-]);
-
-echo json_encode([
-    "success" => true,
-    "comments" => $comments,
-    "pagination" => [
-        "page" => $page,
-        "limit" => $limit,
-        "total" => $total,
-        "has_more" => ($offset + $limit) < $total
-    ]
-]);
-exit;
