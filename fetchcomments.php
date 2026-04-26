@@ -9,7 +9,7 @@ $raw = file_get_contents("php://input");
 $data = json_decode($raw, true);
 
 $post_id = $data['post_id'] ?? null;
-$comment = trim($data['comment_text'] ?? "");
+$comment = trim($data['Description'] ?? "");
 
 if (!$post_id || $comment === "") {
     echo json_encode([
@@ -23,7 +23,7 @@ try {
     $pdo->beginTransaction();
 
     // 1️⃣ Insert comment
-    $stmt = $pdo->prepare("INSERT INTO comments (post_id, user_uuid, comment_text, Created_at)
+    $stmt = $pdo->prepare("INSERT INTO comments (post_id, user_uuid, Description, Created_at)
         VALUES (:post_id, :user_uuid, :comment, NOW())
     ");
 
