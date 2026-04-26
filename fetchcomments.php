@@ -67,6 +67,15 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM comments WHERE post_id = ?");
 $stmt->execute([$post_id]);
 $total = (int)$stmt->fetchColumn();
 
+$update = $pdo->prepare("UPDATE posts 
+    SET comment_count = comment_count + 1 
+    WHERE id = :post_id
+");
+
+$update->execute([
+    ':post_id' => $post_id
+]);
+
 echo json_encode([
     "success" => true,
     "comments" => $comments,
