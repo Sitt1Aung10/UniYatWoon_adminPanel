@@ -73,10 +73,7 @@ $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 /* =========================
    TOTAL COUNT (REAL SOURCE)
 ========================= */
-$stmt = $pdo->prepare("
-    SELECT COUNT(*) 
-    FROM comments 
-    WHERE post_id = ?
+$stmt = $pdo->prepare("SELECT * FROM comments WHERE post_id = ? ORDER BY Created_at DESC
 ");
 $stmt->execute([$post_id]);
 $total = (int)$stmt->fetchColumn();
