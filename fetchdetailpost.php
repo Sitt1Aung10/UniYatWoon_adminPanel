@@ -21,8 +21,7 @@ try {
        1️⃣ Fetch Single Post
        ========================= */
 
-    $sql = "
-    SELECT
+    $sql = "SELECT
         p.id,
         p.user_uuid,
         u.Username,
@@ -91,8 +90,7 @@ try {
        2️⃣ Attach Media
        ========================= */
 
-    $media_sql = "
-        SELECT 
+    $media_sql = "SELECT 
             Media_url,
             Media_type
         FROM posts_media
@@ -113,14 +111,13 @@ try {
        (Most Important Fix)
        ========================= */
 
-    $comments_sql = "
-        SELECT
+    $comments_sql = "SELECT
             c.id,
             c.post_id,
             c.user_uuid,
             u.Username,
             u.Profile_photo,
-            c.comment_text,
+            c.Description,
             c.created_at
 
         FROM comments c
