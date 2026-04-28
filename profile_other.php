@@ -75,17 +75,6 @@ if ($current_user_uuid) {
     $is_following = (bool)$follow_check->fetch();
 }
 
-/* =========================
-   Response
-   ========================= */
-echo json_encode([
-    "success" => true,
-    "isOwnProfile" => false,
-    "isFollowing" => $is_following,
-    "user" => $user,
-    "posts" => $posts
-]);
-
 $follower_count = $pdo->prepare(
     "SELECT COUNT(*) FROM follows WHERE following_uuid = ?"
 );
@@ -102,9 +91,9 @@ echo json_encode([
     "success" => true,
     "isOwnProfile" => false,
     "isFollowing" => $is_following,
+    "follower_count" => $follower_count,
+    "following_count" => $following_count,
     "user" => $user,
     "posts" => $posts,
-    "follower_count" => $follower_count,
-    "following_count" => $following_count
 ]);
 exit;
