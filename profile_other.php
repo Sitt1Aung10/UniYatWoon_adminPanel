@@ -85,4 +85,26 @@ echo json_encode([
     "user" => $user,
     "posts" => $posts
 ]);
+
+$follower_count = $pdo->prepare(
+    "SELECT COUNT(*) FROM follows WHERE following_uuid = ?"
+);
+$follower_count->execute([$profile_uuid]);
+$follower_count = $follower_count->fetchColumn();
+
+$following_count = $pdo->prepare(
+    "SELECT COUNT(*) FROM follows WHERE follower_uuid = ?"
+);
+$following_count->execute([$profile_uuid]);
+$following_count = $following_count->fetchColumn();
+
+echo json_encode([
+    "success" => true,
+    "isOwnProfile" => false,
+    "isFollowing" => $is_following,
+    "user" => $user,
+    "posts" => $posts,
+    "follower_count" => $follower_count,
+    "following_count" => $following_count
+]);
 exit;

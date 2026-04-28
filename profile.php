@@ -38,6 +38,20 @@ foreach ($posts as &$post) {
 }
 unset($post);
 
+$follower_count = $pdo->prepare(
+    "SELECT COUNT(*) FROM follows WHERE following_uuid = ?"
+);
+$follower_count->execute([$user_uuid]);
+$follower_count = $follower_count->fetchColumn();
+
+$following_count = $pdo->prepare(
+    "SELECT COUNT(*) FROM follows WHERE follower_uuid = ?"
+);
+$following_count->execute([$user_uuid]);
+$following_count = $following_count->fetchColumn();
+
+
+
 /* =========================
    4️⃣ Response (UPDATE THIS)
    ========================= */
