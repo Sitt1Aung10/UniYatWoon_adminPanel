@@ -58,7 +58,10 @@ $following_count = $following_count->fetchColumn();
 echo json_encode([
     "success" => true,
     "isOwnProfile" => true,
-    "user" => $user, // <--- This provides the data for your Edit Profile screen
-    "posts" => $posts
+    "user" => $user,
+    "posts" => $posts,
+    "follower_count" => (int)$follower_count,
+    "following_count" => (int)$following_count
 ]);
+
    exit;
