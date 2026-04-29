@@ -68,7 +68,7 @@ try {
         ";
     }
 
-    $stmt = $conn->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     $stmt->bind_param("s", $user_uuid);
     $stmt->execute();
 
