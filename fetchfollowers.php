@@ -3,14 +3,13 @@ require_once 'cors.php';
 require_once 'auth.php';
 require_once 'db_connect.php';
 
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json');
 
-/* =========================
-   Get parameters
-========================= */
-
-$user_uuid = $_GET['user_uuid'] ?? $_POST['user_uuid'] ?? null;
-$type = $_GET['type'] ?? $_POST['type'] ?? 'followers';
+$user_uuid = $_GET['user_uuid'] ?? null;
+$type = $_GET['type'] ?? 'followers';
 
 if (!$user_uuid) {
     echo json_encode([
@@ -20,15 +19,10 @@ if (!$user_uuid) {
     exit;
 }
 
-/* =========================
-   Query based on type
-========================= */
-
 try {
 
     if ($type === "following") {
 
-        // Users THIS USER follows
         $sql = "
             SELECT 
                 u.user_uuid,
@@ -38,13 +32,11 @@ try {
             FROM follows f
             JOIN users u 
                 ON f.following_uuid = u.user_uuid
-            WHERE f.follower_uuid = ?
-            ORDER BY u.Username ASC
+            WHERE f.follower_uuid = :user_uuid
         ";
 
     } else {
 
-        // Users FOLLOWING this user
         $sql = "
             SELECT 
                 u.user_uuid,
@@ -54,27 +46,17 @@ try {
             FROM follows f
             JOIN users u 
                 ON f.follower_uuid = u.user_uuid
-            WHERE f.following_uuid = ?
-            ORDER BY u.Username ASC
+            WHERE f.following_uuid = :user_uuid
         ";
     }
 
-    $stmt =$pdo->prepare($sql);
-    $stmt->bind_param("s", $user_uuid);
-    $stmt->execute();
+    $stmt = $pdo->prepare($sql);
 
-    $result = $stmt->get_result();
+    $stmt->execute([
+        ':user_uuid' => $user_uuid
+    ]);
 
-    $users = [];
-
-    while ($row = $result->fetch_assoc()) {
-        $users[] = [
-            "user_uuid" => $row["user_uuid"],
-            "Username" => $row["Username"],
-            "Major" => $row["Major"],
-            "Profile_photo" => $row["Profile_photo"]
-        ];
-    }
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         "success" => true,
@@ -82,12 +64,10 @@ try {
         "users" => $users
     ]);
 
-} catch (Exception $e) {
+} catch (PDOException $e) {
 
     echo json_encode([
         "success" => false,
-        "message" => "Server error",
-        "error" => $e->getMessage()
+        "message" => $e->getMessage()
     ]);
-
 }

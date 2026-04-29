@@ -1,16 +1,15 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 require_once 'cors.php';
 require_once 'auth.php';
-require_once 'db_connect.php';
+require_once 'db_connect.php'; // must return $pdo (PDO connection)
+
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 header('Content-Type: application/json');
 
 /* =========================
-   Accept multiple param styles
+   Get input
 ========================= */
 
 $input = json_decode(file_get_contents("php://input"), true);
@@ -43,6 +42,7 @@ try {
 
     if ($type === "following") {
 
+        // Users THIS USER follows
         $sql = "
             SELECT 
                 u.user_uuid,
@@ -52,12 +52,13 @@ try {
             FROM follows f
             JOIN users u 
                 ON f.following_uuid = u.user_uuid
-            WHERE f.follower_uuid = ?
+            WHERE f.follower_uuid = :user_uuid
             ORDER BY u.Username ASC
         ";
 
     } else {
 
+        // Users FOLLOWING this user
         $sql = "
             SELECT 
                 u.user_uuid,
@@ -67,41 +68,32 @@ try {
             FROM follows f
             JOIN users u 
                 ON f.follower_uuid = u.user_uuid
-            WHERE f.following_uuid = ?
+            WHERE f.following_uuid = :user_uuid
             ORDER BY u.Username ASC
         ";
     }
 
     $stmt = $pdo->prepare($sql);
-    $stmt->bind_param("s", $user_uuid);
-    $stmt->execute();
 
-    $result = $stmt->get_result();
+    $stmt->execute([
+        ':user_uuid' => $user_uuid
+    ]);
 
-    $list = [];
-
-    while ($row = $result->fetch_assoc()) {
-        $list[] = [
-            "user_uuid" => $row["user_uuid"],
-            "Username" => $row["Username"],
-            "Major" => $row["Major"],
-            "Profile_photo" => $row["Profile_photo"]
-        ];
-    }
+    $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         "success" => true,
         "list" => $list,
         "followers" => $type === "followers" ? $list : [],
-        "following" => $type === "following" ? $list : []
+        "following" => $type === "following" ? $list : [],
+        "users" => $list
     ]);
 
-} catch (Exception $e) {
+} catch (PDOException $e) {
 
     echo json_encode([
         "success" => false,
         "message" => "Database error",
         "error" => $e->getMessage()
     ]);
-
 }
